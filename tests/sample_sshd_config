@@ -1,0 +1,3 @@
+﻿# Test fixture for Linux Security Audit Toolkit
+PermitRootLogin yes
+PasswordAuthentication yes
