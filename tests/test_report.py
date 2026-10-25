@@ -60,12 +60,12 @@ class TestAuditReport(unittest.TestCase):
         report = build_report("tests/sample_sshd_config")
         summary = report["summary"]
 
-        self.assertEqual(summary["total_findings"], 2)
-        self.assertEqual(summary["pass"], 0)
+        self.assertEqual(summary["total_findings"], 3)
+        self.assertEqual(summary["pass"], 1)
         self.assertEqual(summary["review"], 2)
         self.assertEqual(summary["high"], 1)
         self.assertEqual(summary["medium"], 1)
-        self.assertEqual(summary["info"], 0)
+        self.assertEqual(summary["info"], 1)
 
     def test_summary_is_zero_without_ssh_config(self):
         report = build_report()

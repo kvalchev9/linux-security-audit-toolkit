@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 
 def parse_sshd_config_text(text: str) -> dict:
@@ -19,7 +19,7 @@ def parse_sshd_config_text(text: str) -> dict:
         key, value = parts
         key = key.lower()
 
-        if key in {"permitrootlogin", "passwordauthentication"}:
+        if key in {"permitrootlogin", "passwordauthentication", "pubkeyauthentication" }:
             settings[key] = value.strip().lower()
 
     return settings
@@ -109,6 +109,44 @@ def audit_ssh_config_text(text: str) -> list[dict]:
             "recommendation": (
                 "Review the effective SSH configuration, including defaults "
                 "and any Match blocks."
+            ),
+        })
+
+    pubkey_auth = settings.get("pubkeyauthentication")
+
+    if pubkey_auth == "yes":
+        findings.append({
+            "check": "ssh_pubkey_authentication",
+            "status": "PASS",
+            "severity": "INFO",
+            "evidence": "PubkeyAuthentication yes",
+            "recommendation": (
+                "Keep public-key authentication enabled and protect private keys."
+            ),
+        })
+    elif pubkey_auth == "no":
+        findings.append({
+            "check": "ssh_pubkey_authentication",
+            "status": "REVIEW",
+            "severity": "MEDIUM",
+            "evidence": "PubkeyAuthentication no",
+            "recommendation": (
+                "Review whether disabling public-key authentication is appropriate."
+            ),
+        })
+    else:
+        findings.append({
+            "check": "ssh_pubkey_authentication",
+            "status": "REVIEW",
+            "severity": "MEDIUM",
+            "evidence": (
+                f"PubkeyAuthentication {pubkey_auth}"
+                if pubkey_auth is not None
+                else "PubkeyAuthentication is not explicitly configured."
+            ),
+            "recommendation": (
+                "Review the effective SSH configuration and verify the intended "
+                "public-key authentication policy."
             ),
         })
 

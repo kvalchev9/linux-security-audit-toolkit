@@ -67,7 +67,7 @@ PasswordAuthentication no
     def test_missing_settings_are_reviewed(self):
         findings = audit_ssh_config_text("# No active settings\n")
 
-        self.assertEqual(len(findings), 2)
+        self.assertEqual(len(findings), 3)
         self.assertTrue(
             all(f["status"] == "REVIEW" for f in findings)
         )
