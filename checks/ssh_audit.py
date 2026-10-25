@@ -158,3 +158,31 @@ def audit_ssh_config_file(path: str | Path) -> list[dict]:
     config_path = Path(path)
     text = config_path.read_text(encoding="utf-8", errors="replace")
     return audit_ssh_config_text(text)
+
+
+def audit_effective_sshd_config(
+    config_path: str | Path = "/etc/ssh/sshd_config",
+    sshd_path: str = "/usr/sbin/sshd",
+) -> list[dict]:
+    """Audit effective SSH settings produced by sshd -T."""
+    import subprocess
+
+    command = [sshd_path, "-T", "-f", str(config_path)]
+
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=15,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError(f"Unable to run sshd -T: {exc}") from exc
+
+    if result.returncode != 0:
+        message = result.stderr.strip() or "sshd -T failed."
+        raise RuntimeError(message)
+
+    return audit_ssh_config_text(result.stdout)
+

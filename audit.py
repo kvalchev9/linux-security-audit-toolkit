@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from datetime import datetime, timezone
 
-from checks.ssh_audit import audit_ssh_config_file
+from checks.ssh_audit import audit_effective_sshd_config, audit_ssh_config_file
 
 
 def collect_system_info():
@@ -60,6 +60,11 @@ def main():
         help="Path to a local SSH configuration file to audit",
     )
     parser.add_argument(
+        "--effective-ssh",
+        action="store_true",
+        help="Audit effective SSH daemon settings using sshd -T",
+    )
+    parser.add_argument(
         "--output",
         help="Optional path to save the JSON report",
     )
@@ -90,7 +95,27 @@ def main():
             return 2
 
     try:
-        report = build_report(args.ssh_config)
+        if args.effective_ssh and args.ssh_config:
+            print(
+                "ERROR: Use either --effective-ssh or --ssh-config, not both.",
+                file=sys.stderr,
+            )
+            return 2
+
+        if args.effective_ssh:
+            findings = audit_effective_sshd_config()
+            report = build_report()
+            report["findings"] = findings
+            report["summary"] = {
+                "total_findings": len(findings),
+                "pass": sum(item["status"] == "PASS" for item in findings),
+                "review": sum(item["status"] == "REVIEW" for item in findings),
+                "high": sum(item["severity"] == "HIGH" for item in findings),
+                "medium": sum(item["severity"] == "MEDIUM" for item in findings),
+                "info": sum(item["severity"] == "INFO" for item in findings),
+            }
+        else:
+            report = build_report(args.ssh_config)
         output = json.dumps(report, indent=2, ensure_ascii=False)
 
         if args.output:
@@ -101,7 +126,7 @@ def main():
         else:
             print(output)
 
-    except (OSError, UnicodeError, ValueError) as exc:
+    except (OSError, UnicodeError, ValueError, RuntimeError) as exc:
         print(f"ERROR: Audit failed: {exc}", file=sys.stderr)
         return 1
 
