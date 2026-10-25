@@ -56,6 +56,26 @@ class TestAuditReport(unittest.TestCase):
             "Linux Security Audit Toolkit",
         )
 
+    def test_summary_counts_findings_correctly(self):
+        report = build_report("tests/sample_sshd_config")
+        summary = report["summary"]
 
+        self.assertEqual(summary["total_findings"], 2)
+        self.assertEqual(summary["pass"], 0)
+        self.assertEqual(summary["review"], 2)
+        self.assertEqual(summary["high"], 1)
+        self.assertEqual(summary["medium"], 1)
+        self.assertEqual(summary["info"], 0)
+
+    def test_summary_is_zero_without_ssh_config(self):
+        report = build_report()
+        summary = report["summary"]
+
+        self.assertEqual(summary["total_findings"], 0)
+        self.assertEqual(summary["pass"], 0)
+        self.assertEqual(summary["review"], 0)
+        self.assertEqual(summary["high"], 0)
+        self.assertEqual(summary["medium"], 0)
+        self.assertEqual(summary["info"], 0)
 if __name__ == "__main__":
     unittest.main()

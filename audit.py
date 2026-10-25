@@ -1,4 +1,4 @@
-﻿import argparse
+import argparse
 import json
 import platform
 import shutil
@@ -32,11 +32,21 @@ def build_report(ssh_config_path=None):
     if ssh_config_path is not None:
         findings = audit_ssh_config_file(ssh_config_path)
 
+    summary = {
+        "total_findings": len(findings),
+        "pass": sum(item["status"] == "PASS" for item in findings),
+        "review": sum(item["status"] == "REVIEW" for item in findings),
+        "high": sum(item["severity"] == "HIGH" for item in findings),
+        "medium": sum(item["severity"] == "MEDIUM" for item in findings),
+        "info": sum(item["severity"] == "INFO" for item in findings),
+    }
+
     return {
         "tool": "Linux Security Audit Toolkit",
         "report_version": "1.0",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "system": collect_system_info(),
+        "summary": summary,
         "findings": findings,
     }
 
