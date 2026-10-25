@@ -8,6 +8,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 from checks.ssh_audit import audit_effective_sshd_config, audit_ssh_config_file
+from checks.text_report import format_text_report
 
 
 def collect_system_info():
@@ -65,8 +66,14 @@ def main():
         help="Audit effective SSH daemon settings using sshd -T",
     )
     parser.add_argument(
+        "--format",
+        choices=("json", "text"),
+        default="json",
+        help="Output format: json or text (default: json)",
+    )
+    parser.add_argument(
         "--output",
-        help="Optional path to save the JSON report",
+        help="Optional path to save the report in the selected format",
     )
     args = parser.parse_args()
 
@@ -116,7 +123,10 @@ def main():
             }
         else:
             report = build_report(args.ssh_config)
-        output = json.dumps(report, indent=2, ensure_ascii=False)
+        if args.format == "text":
+            output = format_text_report(report)
+        else:
+            output = json.dumps(report, indent=2, ensure_ascii=False)
 
         if args.output:
             output_path = Path(args.output)
