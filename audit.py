@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 from checks.ssh_audit import audit_effective_sshd_config, audit_ssh_config_file
 from checks.text_report import format_text_report
+from checks.pdf_report import format_pdf_report
 
 
 def collect_system_info():
@@ -27,13 +28,8 @@ def collect_system_info():
     }
 
 
-def build_report(ssh_config_path=None):
-    findings = []
-
-    if ssh_config_path is not None:
-        findings = audit_ssh_config_file(ssh_config_path)
-
-    summary = {
+def build_summary(findings):
+    return {
         "total_findings": len(findings),
         "pass": sum(item["status"] == "PASS" for item in findings),
         "review": sum(item["status"] == "REVIEW" for item in findings),
@@ -42,12 +38,19 @@ def build_report(ssh_config_path=None):
         "info": sum(item["severity"] == "INFO" for item in findings),
     }
 
+
+def build_report(ssh_config_path=None):
+    findings = []
+
+    if ssh_config_path is not None:
+        findings = audit_ssh_config_file(ssh_config_path)
+
     return {
         "tool": "Linux Security Audit Toolkit",
         "report_version": "1.0",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "system": collect_system_info(),
-        "summary": summary,
+        "summary": build_summary(findings),
         "findings": findings,
     }
 
@@ -67,15 +70,22 @@ def main():
     )
     parser.add_argument(
         "--format",
-        choices=("json", "text"),
+        choices=("json", "text", "pdf"),
         default="json",
-        help="Output format: json or text (default: json)",
+        help="Output format: json, text, or pdf (default: json)",
     )
     parser.add_argument(
         "--output",
         help="Optional path to save the report in the selected format",
     )
     args = parser.parse_args()
+
+    if args.format == "pdf" and not args.output:
+        print(
+            "ERROR: PDF format requires --output with a file path.",
+            file=sys.stderr,
+        )
+        return 2
 
     if args.ssh_config:
         config_path = Path(args.ssh_config)
@@ -113,16 +123,15 @@ def main():
             findings = audit_effective_sshd_config()
             report = build_report()
             report["findings"] = findings
-            report["summary"] = {
-                "total_findings": len(findings),
-                "pass": sum(item["status"] == "PASS" for item in findings),
-                "review": sum(item["status"] == "REVIEW" for item in findings),
-                "high": sum(item["severity"] == "HIGH" for item in findings),
-                "medium": sum(item["severity"] == "MEDIUM" for item in findings),
-                "info": sum(item["severity"] == "INFO" for item in findings),
-            }
+            report["summary"] = build_summary(findings)
         else:
             report = build_report(args.ssh_config)
+
+        if args.format == "pdf":
+            format_pdf_report(report, args.output)
+            print(f"PDF report saved to: {args.output}")
+            return 0
+
         if args.format == "text":
             output = format_text_report(report)
         else:
