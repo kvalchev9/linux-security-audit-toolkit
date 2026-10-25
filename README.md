@@ -1,71 +1,103 @@
-﻿# Linux Security Audit Toolkit
+# Linux Security Audit Toolkit
 
-A Python-based security auditing tool that collects basic system information
-and reviews selected SSH daemon configuration settings.
+A Python-based defensive security tool that collects basic system
+information and audits selected SSH daemon authentication settings.
+It produces structured JSON or readable plain-text reports.
 
 ## Features
 
-- Collects system information, including hostname, operating system,
-  architecture, Python version, and disk usage.
+- Collects hostname, operating system, architecture, Python version,
+  and disk usage.
 - Audits selected SSH settings:
   - `PermitRootLogin`
   - `PasswordAuthentication`
+  - `PubkeyAuthentication`
+- Supports auditing a supplied SSH configuration file.
+- Supports checking effective SSH settings using `sshd -T`.
 - Reports findings with status, severity, evidence, and recommendations.
-- Outputs reports as JSON to the console or a specified file.
-- Validates missing and empty SSH configuration files.
+- Outputs JSON or plain-text reports to the console or a file.
+- Validates missing and empty configuration files.
 - Includes automated unit tests.
 
 ## Requirements
 
-- Python 3.10 or newer
-- Windows, Linux, or macOS for running the Python tool
-- An SSH daemon configuration file for SSH auditing
+- Python 3.10 or newer.
+- For file-based auditing, a readable SSH configuration file.
+- For effective SSH auditing, OpenSSH `sshd` must be installed.
+- Elevated privileges may be required to read the effective SSH configuration.
 
 ## Usage
 
-Run the basic system audit:
+### Basic system report
 
-```powershell
-python audit.py
-## Usage (continued)
-
-Audit a sample SSH configuration:
-
-```powershell
-python audit.py --ssh-config tests/sample_sshd_config
+```bash
+python3 audit.py
 ```
 
-Save the report as JSON:
+### Audit a supplied SSH configuration file
 
-```powershell
-python audit.py --ssh-config tests/sample_sshd_config --output reports/sample-report.json
+```bash
+python3 audit.py --ssh-config tests/sample_sshd_config
 ```
 
-Run the test suite:
+### Save a JSON report
 
-```powershell
-python -m unittest discover -s tests -v
+```bash
+python3 audit.py --ssh-config tests/sample_sshd_config --output reports/sample-report.json
 ```
 
-## Example Findings
+### Audit effective SSH settings
 
-- `PASS` — a setting matches the check's expected policy.
-- `REVIEW` — a setting needs further investigation.
-- `HIGH`, `MEDIUM`, or `INFO` — the finding's assigned severity.
+```bash
+sudo python3 audit.py --effective-ssh
+```
 
-These are preliminary configuration checks, not a complete security assessment.
+### Generate a readable text report
+
+```bash
+sudo python3 audit.py --effective-ssh --format text
+```
+
+### Save a text report
+
+```bash
+sudo python3 audit.py --effective-ssh --format text --output reports/ssh-audit.txt
+```
+
+Use either `--ssh-config` or `--effective-ssh`, not both.
+JSON is the default output format. Supported formats are `json` and `text`.
+
+### Run tests
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+## Understanding Findings
+
+- `PASS` means the selected check matches the tool's current rule.
+- `REVIEW` means the setting should be reviewed by an administrator.
+- `HIGH`, `MEDIUM`, and `INFO` describe the assigned finding severity.
+
+A finding is a recommendation for investigation, not proof that a system
+is secure or compromised.
 
 ## Limitations
 
-- SSH auditing examines selected settings in the supplied file.
-- It does not resolve `Include` directives, fully evaluate `Match` blocks, or determine the effective configuration of a running SSH daemon.
-- Verify findings against the target system's actual configuration.
-- The tool does not modify system settings.
+- Only selected SSH authentication settings are checked.
+- File-based auditing examines the supplied file and does not fully resolve
+  `Include` directives, `Match` blocks, or all OpenSSH configuration semantics.
+- Effective auditing uses `sshd -T`; it reports the settings exposed by that
+  command for the selected configuration, but is not a complete security audit.
+- Results depend on the environment and permissions in which the tool runs.
+- The tool does not modify SSH configuration or start the SSH service.
 
 ## Safety
 
-This tool is intended for authorized defensive security auditing. Review findings before making configuration changes.
+Use this tool only on systems you own or are authorized to assess.
+Review findings and confirm operational requirements before changing settings.
 
 ## Project Status
 
-Early development. Additional checks, expanded test coverage, and improved SSH configuration analysis are planned.
+Early development. Future work may include additional security checks,
+more report formats, and expanded platform testing.
